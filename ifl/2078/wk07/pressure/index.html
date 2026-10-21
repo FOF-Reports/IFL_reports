@@ -1,0 +1,2768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="IFL 2078 pressure report: blitz rates, QBs vs the blitz, blitz outcomes and sack streaks.">
+<title>IFL Pressure Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: one reading column of report sections; each chart is an HTML row-grid (label | track | value) so it reflows to phone width. */
+:root {
+  color-scheme: dark;
+  /* surfaces + ink: the league's weekly-report navy */
+  --bg: #1a1a2e;
+  --panel: #16213e;
+  --line: #2c3a66;
+  --grid: #243156;
+  --fg: #e6e6f2;
+  --muted: #a3a9c6;
+  --faint: #7d84a6;
+  --accent: #e94560;
+  /* rush size: greys = 3/4 rushers, one red ramp = blitz levels */
+  --r3: #48507a;
+  --r4: #6f779e;
+  --b1: #f4a7b0;
+  --b2: #ec5f78;
+  --ao: #c4284a;
+  /* blitz outcomes (categorical slots 1-3) */
+  --o-inc: #3987e5;
+  --o-sack: #d95926;
+  --o-int: #199e70;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.75rem;
+  --step-3: 2.75rem;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 920px;
+  margin: 0 auto;
+  padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 56px;
+}
+.wrap > *, section.block > * { min-width: 0; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: var(--step-3); line-height: 1; text-transform: uppercase; }
+h2 { font-size: var(--step-2); line-height: 1.1; text-transform: uppercase; }
+h3 { font-size: var(--step-1); font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+.eyebrow { font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+header.hero { display: grid; gap: 14px; border-bottom: 2px solid var(--accent); padding-bottom: 24px; }
+.defs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.def { display: inline-flex; align-items: center; gap: 8px; font-size: var(--step--1); color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px 3px 8px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.tile .k { font-family: var(--font-display); font-size: var(--step--1); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.tile .v { font-family: var(--font-display); font-weight: 700; font-size: 2.25rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: var(--step--1); color: var(--muted); line-height: 1.35; }
+@media (max-width: 720px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+section.block { display: grid; gap: 16px; }
+section.block > header { display: grid; gap: 6px; }
+.prose { display: grid; gap: 10px; }
+.prose b { color: var(--fg); font-weight: 600; }
+
+figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+figcaption { font-size: var(--step--1); color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--step--1); color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+.dot.hollow { background: transparent; border: 2px solid var(--muted); }
+
+/* row chart */
+.chart { display: grid; gap: 3px; }
+.row { display: grid; grid-template-columns: var(--label-w, 64px) minmax(0, 1fr) var(--value-w, 70px); align-items: center; gap: 10px; min-height: 22px; }
+.row.axis { min-height: 18px; font-size: 0.72rem; color: var(--faint); }
+.row.league .lab { color: var(--fg); font-weight: 600; }
+.row.sep { border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 4px; }
+.lab { font-size: var(--step--1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.val { font-size: var(--step--1); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.track { position: relative; height: 14px; }
+.axis .track { height: 14px; }
+.tick { position: absolute; top: 0; transform: translateX(-50%); }
+.gridline { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--grid); }
+.refline { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--fg); opacity: 0.7; }
+.stack { position: absolute; inset: 0; display: flex; gap: 2px; }
+.seg { height: 100%; min-width: 0; }
+.seg:first-child { border-radius: 3px 0 0 3px; }
+.seg:last-child { border-radius: 0 3px 3px 0; }
+.seg:only-child { border-radius: 3px; }
+.cmp { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: var(--fg); border-radius: 2px; }
+.bar-line { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--faint); }
+.pt { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; }
+.pt.base { background: var(--panel); border: 2px solid var(--muted); }
+.pt.blitz { background: var(--b2); box-shadow: 0 0 0 2px var(--panel); }
+.up { color: #7fd0a8; }
+.down { color: #f2a3ad; }
+
+.chip { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; line-height: 1; padding: 3px 5px 2px; border-radius: 3px; min-width: 32px; text-align: center; }
+.qb { overflow: hidden; text-overflow: ellipsis; }
+
+/* streaks */
+.streaks { display: grid; gap: 6px; }
+.srow { display: grid; grid-template-columns: 44px minmax(0, 1fr) 104px; gap: 10px; align-items: center; }
+.games { display: flex; flex-wrap: wrap; gap: 3px; }
+.g { width: 16px; height: 16px; border-radius: 3px; display: grid; place-items: center; font-size: 0.62rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.g.y77 { background: #5b4d7d; color: var(--muted); }
+.g.po { background: #5b4d7d; color: var(--fg); outline: 1px solid var(--muted); outline-offset: -1px; }
+.g.y78 { background: var(--accent); color: #1a1a2e; }
+.g.miss { background: transparent; border: 1px solid var(--line); color: var(--faint); }
+.sval { text-align: right; font-size: var(--step--1); color: var(--muted); }
+.sval b { font-family: var(--font-display); font-size: 1.35rem; color: var(--fg); font-weight: 700; margin-right: 3px; }
+
+.players { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.pcard { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; }
+.pcard .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard .meta { font-size: var(--step--1); color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.pcard .big { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-family: var(--font-display); line-height: 1; }
+.pcard .big b { font-size: 2rem; display: block; }
+.pcard .big span { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+.recgrid { display: grid; gap: 22px; }
+.recgrid .chart h4 { margin: 0 0 4px; font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.rank { font-family: var(--font-display); font-weight: 700; color: var(--muted); width: 22px; flex: none; text-align: right; }
+.hbar { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 0 3px 3px 0; }
+.row.rec .track { height: 16px; }
+.tag { display: inline-block; font-family: var(--font-display); font-weight: 600; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 0 4px; line-height: 1.35; }
+.notes { font-size: var(--step--1); color: var(--muted); display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 20px; }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 80ch; }
+.tablewrap { overflow-x: auto; }
+details summary { cursor: pointer; font-size: var(--step--1); color: var(--muted); }
+details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+table { border-collapse: collapse; font-size: var(--step--1); font-variant-numeric: tabular-nums; margin-top: 8px; }
+th, td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 500; }
+
+#tip { position: fixed; z-index: 20; pointer-events: none; background: #0f1528; border: 1px solid var(--line); border-radius: 5px; padding: 8px 10px; font-size: var(--step--1); line-height: 1.4; max-width: 260px; box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+[data-tip] { cursor: default; }
+@media (max-width: 560px) {
+  .row { --label-w: 46px; --value-w: 56px; gap: 6px; }
+  .row.qbrow { --label-w: 104px; }
+  .srow { grid-template-columns: 40px minmax(0, 1fr) 84px; }
+}
+
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; } img { max-width: 100%; } [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow" id="eyebrow">IFL 2078 · Through Week 7</div>
+    <h1>The Pressure Report</h1>
+    <p class="muted">Who brings extra rushers, what it buys them, and which quarterbacks shrink or stand tall when the blitz comes. A blitz here means <b style="color:var(--fg)">five or more pass rushers</b>, evaluating 3-man and 4-man fronts on the same basis.</p>
+    <p class="muted">The report covers the present season through Week 7, and compares to the historical records 2060 to present day.</p>
+    <div class="defs" id="defs"></div>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section class="block">
+    <header>
+      <div class="eyebrow">1 · Pressure rates</div>
+      <h2>Who sends extra rushers?</h2>
+    </header>
+    <div class="prose" id="p1"></div>
+    <figure>
+      <div class="legend" id="lg1"></div>
+      <div class="chart" id="c1" style="--label-w:56px;--value-w:52px"></div>
+      <figcaption>Share of each defense's dropbacks faced, by number of pass rushers. The red length is the blitz rate. Dashed line: league blitz rate this season.</figcaption>
+    </figure>
+    <figure id="f1rec" hidden>
+      <h3 id="h1rec">Blitz records</h3>
+      <div class="legend"><span><i class="sw" style="background:var(--muted)"></i>bar colour = team</span><span><span class="tag">active</span> 2078 so far, same scale</span></div>
+      <div class="recgrid">
+        <div class="chart" id="c1a" style="--label-w:120px;--value-w:118px"></div>
+        <div class="chart" id="c1b" style="--label-w:120px;--value-w:118px"></div>
+      </div>
+      <figcaption>Team seasons, regular season only. Blitz rate = share of dropbacks with 5+ pass rushers; all-out = 7+.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block">
+    <header>
+      <div class="eyebrow">2 · Quarterbacks vs the blitz</div>
+      <h2>Success rate when blitzed</h2>
+    </header>
+    <div class="prose" id="p2"></div>
+    <figure>
+      <div class="legend"><span><i class="dot" style="background:var(--b2)"></i>vs blitz (5+ rushers)</span><span><i class="dot hollow"></i>vs 4 or fewer rushers</span><span><i style="width:14px;border-top:2px dashed var(--fg)"></i>league average</span></div>
+      <div class="chart" id="c2" style="--label-w:150px;--value-w:64px"></div>
+      <figcaption>Success = the play gained at least 40% of the needed yards on 1st down, 60% on 2nd, 100% on 3rd/4th. Dropbacks include sacks and scrambles. QBs with 25+ blitzed dropbacks. Right column: change vs their own non-blitz rate.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block">
+    <header>
+      <div class="eyebrow">3 · Effects of the blitz</div>
+      <h2>Sacks, incompletions and picks when blitzing</h2>
+    </header>
+    <div class="prose" id="p3"></div>
+    <figure>
+      <div class="legend"><span><i class="sw" style="background:var(--o-sack)"></i>Sack</span><span><i class="sw" style="background:var(--o-inc)"></i>Incompletion</span><span><i class="sw" style="background:var(--o-int)"></i>Interception</span><span><i style="width:3px;height:12px;background:var(--fg);border-radius:2px"></i>same team, 4 or fewer rushers</span></div>
+      <div class="chart" id="c3" style="--label-w:56px;--value-w:96px"></div>
+      <figcaption>Share of blitzed dropbacks ending in each result, defenses with 20+ blitzes. Right column: EPA allowed per blitzed dropback (lower is better for the defense).</figcaption>
+    </figure>
+  </section>
+
+  <section class="block">
+    <header>
+      <div class="eyebrow">4 · QB Behavior When Pressured</div>
+      <h2>Who checks down when the blitz comes, and who throws to the sticks?</h2>
+    </header>
+    <div class="prose" id="p4"></div>
+    <figure>
+      <div class="legend"><span><i class="dot" style="background:var(--b2)"></i>vs blitz</span><span><i class="dot hollow"></i>vs 4 or fewer rushers</span><span><i style="width:14px;border-top:2px dashed var(--fg)"></i>league average vs blitz</span></div>
+      <div class="chart" id="c4" style="--label-w:150px;--value-w:64px"></div>
+      <figcaption>Share of aimed throws where the targeted route's depth reaches the line to gain. QBs with 20+ aimed throws vs the blitz, lowest first.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block">
+    <header>
+      <div class="eyebrow">5 · Sack streaks</div>
+      <h2>Longest active sack streaks</h2>
+    </header>
+    <div class="prose" id="p5"></div>
+    <figure>
+      <h3>Teams: consecutive games with a sack</h3>
+      <div class="legend"><span><i class="sw" style="background:#5b4d7d"></i>2077 regular season</span><span><i class="sw" style="background:#5b4d7d;outline:1px solid var(--muted);outline-offset:-1px"></i>2077 playoffs</span><span><i class="sw" style="background:var(--accent)"></i>2078</span><span class="muted">number = sacks that game</span></div>
+      <div class="streaks" id="c5"></div>
+    </figure>
+    <figure>
+      <h3>Players: consecutive games played with a sack</h3>
+      <div class="players" id="c6"></div>
+      <figcaption>Half sacks count. Games a player missed don't break the streak. Streaks of 3+ games, plus the best 2-game streaks. League record since 2060: Johnny Peelle (CAL), 13 games (2064–65).</figcaption>
+    </figure>
+    <figure>
+      <h3>Record board: the longest streaks since 2060</h3>
+      <div class="legend"><span><i class="sw" style="background:var(--muted)"></i>bar colour = team</span><span><span class="tag">active</span> current streak, same scale</span></div>
+      <div class="recgrid">
+        <div class="chart" id="c7" style="--label-w:150px;--value-w:118px"></div>
+        <div class="chart" id="c8" style="--label-w:190px;--value-w:118px"></div>
+      </div>
+    </figure>
+  </section>
+
+  <footer class="notes">
+    <div class="eyebrow">How this was counted</div>
+    <ul id="notes"></ul>
+    <p>Charts and analysis © FOF-Reports, licensed <a href="https://creativecommons.org/licenses/by-nc/4.0/" style="color:var(--muted)">CC BY-NC 4.0</a>. Game data from Front Office Football and the IFL.</p>
+    <details>
+      <summary>Show the team pressure table</summary>
+      <div class="tablewrap" id="t1"></div>
+    </details>
+  </footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+(() => {
+const D = {
+ "n_dropbacks": 8392,
+ "teams_rate": [
+  {
+   "team": "ORL",
+   "3": 0.0,
+   "4": 26.7,
+   "AO": 3.2,
+   "B1": 52.2,
+   "B2": 17.9,
+   "n": 251.0,
+   "blitz": 73.3
+  },
+  {
+   "team": "HAR",
+   "3": 0.0,
+   "4": 38.6,
+   "AO": 7.6,
+   "B1": 50.2,
+   "B2": 3.6,
+   "n": 251.0,
+   "blitz": 61.4
+  },
+  {
+   "team": "PIT",
+   "3": 8.0,
+   "4": 32.4,
+   "AO": 0.0,
+   "B1": 31.6,
+   "B2": 28.0,
+   "n": 225.0,
+   "blitz": 59.6
+  },
+  {
+   "team": "HOR",
+   "3": 0.0,
+   "4": 52.4,
+   "AO": 0.0,
+   "B1": 47.6,
+   "B2": 0.0,
+   "n": 254.0,
+   "blitz": 47.6
+  },
+  {
+   "team": "KCY",
+   "3": 0.0,
+   "4": 53.0,
+   "AO": 0.0,
+   "B1": 47.0,
+   "B2": 0.0,
+   "n": 296.0,
+   "blitz": 47.0
+  },
+  {
+   "team": "IWC",
+   "3": 2.9,
+   "4": 54.5,
+   "AO": 0.0,
+   "B1": 28.5,
+   "B2": 14.0,
+   "n": 242.0,
+   "blitz": 42.6
+  },
+  {
+   "team": "COL",
+   "3": 0.0,
+   "4": 63.4,
+   "AO": 0.0,
+   "B1": 36.6,
+   "B2": 0.0,
+   "n": 273.0,
+   "blitz": 36.6
+  },
+  {
+   "team": "RAL",
+   "3": 0.0,
+   "4": 63.5,
+   "AO": 0.0,
+   "B1": 36.5,
+   "B2": 0.0,
+   "n": 293.0,
+   "blitz": 36.5
+  },
+  {
+   "team": "SAO",
+   "3": 0.0,
+   "4": 67.5,
+   "AO": 0.0,
+   "B1": 11.9,
+   "B2": 20.5,
+   "n": 302.0,
+   "blitz": 32.5
+  },
+  {
+   "team": "GEO",
+   "3": 13.8,
+   "4": 58.7,
+   "AO": 0.0,
+   "B1": 25.1,
+   "B2": 2.4,
+   "n": 247.0,
+   "blitz": 27.5
+  },
+  {
+   "team": "NFK",
+   "3": 24.5,
+   "4": 48.3,
+   "AO": 0.0,
+   "B1": 27.2,
+   "B2": 0.0,
+   "n": 265.0,
+   "blitz": 27.2
+  },
+  {
+   "team": "DAK",
+   "3": 5.6,
+   "4": 67.5,
+   "AO": 0.0,
+   "B1": 18.2,
+   "B2": 8.7,
+   "n": 231.0,
+   "blitz": 26.8
+  },
+  {
+   "team": "POR",
+   "3": 0.0,
+   "4": 73.4,
+   "AO": 0.0,
+   "B1": 23.0,
+   "B2": 3.6,
+   "n": 252.0,
+   "blitz": 26.6
+  },
+  {
+   "team": "MAD",
+   "3": 0.0,
+   "4": 76.1,
+   "AO": 0.0,
+   "B1": 22.2,
+   "B2": 1.7,
+   "n": 234.0,
+   "blitz": 23.9
+  },
+  {
+   "team": "TEX",
+   "3": 0.0,
+   "4": 77.2,
+   "AO": 0.0,
+   "B1": 22.8,
+   "B2": 0.0,
+   "n": 303.0,
+   "blitz": 22.8
+  },
+  {
+   "team": "MON",
+   "3": 0.0,
+   "4": 82.1,
+   "AO": 0.0,
+   "B1": 17.5,
+   "B2": 0.4,
+   "n": 229.0,
+   "blitz": 17.9
+  },
+  {
+   "team": "MCA",
+   "3": 10.3,
+   "4": 73.4,
+   "AO": 0.0,
+   "B1": 16.3,
+   "B2": 0.0,
+   "n": 312.0,
+   "blitz": 16.3
+  },
+  {
+   "team": "MIA",
+   "3": 7.5,
+   "4": 76.9,
+   "AO": 0.0,
+   "B1": 15.7,
+   "B2": 0.0,
+   "n": 268.0,
+   "blitz": 15.7
+  },
+  {
+   "team": "CSP",
+   "3": 0.0,
+   "4": 87.7,
+   "AO": 0.0,
+   "B1": 12.3,
+   "B2": 0.0,
+   "n": 227.0,
+   "blitz": 12.3
+  },
+  {
+   "team": "LON",
+   "3": 0.0,
+   "4": 87.7,
+   "AO": 0.0,
+   "B1": 12.3,
+   "B2": 0.0,
+   "n": 228.0,
+   "blitz": 12.3
+  },
+  {
+   "team": "WVA",
+   "3": 14.8,
+   "4": 74.2,
+   "AO": 1.3,
+   "B1": 8.1,
+   "B2": 1.7,
+   "n": 236.0,
+   "blitz": 11.0
+  },
+  {
+   "team": "APB",
+   "3": 43.1,
+   "4": 48.9,
+   "AO": 0.0,
+   "B1": 6.1,
+   "B2": 1.9,
+   "n": 262.0,
+   "blitz": 8.0
+  },
+  {
+   "team": "STC",
+   "3": 0.0,
+   "4": 92.6,
+   "AO": 0.0,
+   "B1": 7.4,
+   "B2": 0.0,
+   "n": 216.0,
+   "blitz": 7.4
+  },
+  {
+   "team": "SLC",
+   "3": 9.3,
+   "4": 85.6,
+   "AO": 0.0,
+   "B1": 5.1,
+   "B2": 0.0,
+   "n": 215.0,
+   "blitz": 5.1
+  },
+  {
+   "team": "CAL",
+   "3": 29.0,
+   "4": 68.6,
+   "AO": 0.0,
+   "B1": 2.4,
+   "B2": 0.0,
+   "n": 293.0,
+   "blitz": 2.4
+  },
+  {
+   "team": "TIJ",
+   "3": 0.0,
+   "4": 97.6,
+   "AO": 0.0,
+   "B1": 0.4,
+   "B2": 2.0,
+   "n": 255.0,
+   "blitz": 2.4
+  },
+  {
+   "team": "LVS",
+   "3": 0.0,
+   "4": 98.3,
+   "AO": 0.0,
+   "B1": 1.2,
+   "B2": 0.4,
+   "n": 241.0,
+   "blitz": 1.7
+  },
+  {
+   "team": "LAS",
+   "3": 0.0,
+   "4": 99.4,
+   "AO": 0.0,
+   "B1": 0.6,
+   "B2": 0.0,
+   "n": 342.0,
+   "blitz": 0.6
+  },
+  {
+   "team": "VAN",
+   "3": 73.4,
+   "4": 26.2,
+   "AO": 0.0,
+   "B1": 0.3,
+   "B2": 0.0,
+   "n": 320.0,
+   "blitz": 0.3
+  },
+  {
+   "team": "MUR",
+   "3": 84.7,
+   "4": 15.3,
+   "AO": 0.0,
+   "B1": 0.0,
+   "B2": 0.0,
+   "n": 261.0,
+   "blitz": 0.0
+  },
+  {
+   "team": "BOS",
+   "3": 91.2,
+   "4": 8.8,
+   "AO": 0.0,
+   "B1": 0.0,
+   "B2": 0.0,
+   "n": 285.0,
+   "blitz": 0.0
+  },
+  {
+   "team": "HOU",
+   "3": 0.0,
+   "4": 100.0,
+   "AO": 0.0,
+   "B1": 0.0,
+   "B2": 0.0,
+   "n": 283.0,
+   "blitz": 0.0
+  }
+ ],
+ "league_rate": {
+  "4": 64.5,
+  "B1": 18.1,
+  "3": 13.8,
+  "B2": 3.2,
+  "AO": 0.4,
+  "blitz": 21.7
+ },
+ "qb": [
+  {
+   "qb": "Wade Jude",
+   "team": "VAN",
+   "n_b": 75.0,
+   "n_nb": 168.0,
+   "sr_b": 60.0,
+   "sr_nb": 54.8,
+   "epa_b": 0.409,
+   "epa_nb": 0.431
+  },
+  {
+   "qb": "Andrew Carpenter",
+   "team": "HOU",
+   "n_b": 38.0,
+   "n_nb": 73.0,
+   "sr_b": 57.9,
+   "sr_nb": 43.8,
+   "epa_b": 0.588,
+   "epa_nb": -0.219
+  },
+  {
+   "qb": "Jesse Frederick",
+   "team": "LON",
+   "n_b": 45.0,
+   "n_nb": 198.0,
+   "sr_b": 53.3,
+   "sr_nb": 35.9,
+   "epa_b": 0.337,
+   "epa_nb": -0.029
+  },
+  {
+   "qb": "Morris Davis",
+   "team": "DAK",
+   "n_b": 45.0,
+   "n_nb": 188.0,
+   "sr_b": 48.9,
+   "sr_nb": 47.9,
+   "epa_b": 0.334,
+   "epa_nb": 0.309
+  },
+  {
+   "qb": "Trey Cook",
+   "team": "LVS",
+   "n_b": 69.0,
+   "n_nb": 152.0,
+   "sr_b": 47.8,
+   "sr_nb": 53.9,
+   "epa_b": 0.296,
+   "epa_nb": 0.316
+  },
+  {
+   "qb": "Donny Witt",
+   "team": "MAD",
+   "n_b": 38.0,
+   "n_nb": 253.0,
+   "sr_b": 47.4,
+   "sr_nb": 45.1,
+   "epa_b": 0.075,
+   "epa_nb": 0.073
+  },
+  {
+   "qb": "Ethan Dilday",
+   "team": "MCA",
+   "n_b": 55.0,
+   "n_nb": 227.0,
+   "sr_b": 47.3,
+   "sr_nb": 44.5,
+   "epa_b": 0.231,
+   "epa_nb": 0.252
+  },
+  {
+   "qb": "Kai Posey",
+   "team": "TEX",
+   "n_b": 82.0,
+   "n_nb": 213.0,
+   "sr_b": 46.3,
+   "sr_nb": 39.4,
+   "epa_b": 0.017,
+   "epa_nb": 0.152
+  },
+  {
+   "qb": "Paul Welch",
+   "team": "CSP",
+   "n_b": 38.0,
+   "n_nb": 161.0,
+   "sr_b": 44.7,
+   "sr_nb": 47.8,
+   "epa_b": -0.007,
+   "epa_nb": 0.281
+  },
+  {
+   "qb": "Harris Harp",
+   "team": "APB",
+   "n_b": 27.0,
+   "n_nb": 173.0,
+   "sr_b": 44.4,
+   "sr_nb": 41.6,
+   "epa_b": 0.132,
+   "epa_nb": 0.121
+  },
+  {
+   "qb": "Pedro Shannon",
+   "team": "GEO",
+   "n_b": 52.0,
+   "n_nb": 185.0,
+   "sr_b": 44.2,
+   "sr_nb": 42.7,
+   "epa_b": 0.191,
+   "epa_nb": 0.207
+  },
+  {
+   "qb": "Jessie Brandon",
+   "team": "HOU",
+   "n_b": 34.0,
+   "n_nb": 117.0,
+   "sr_b": 44.1,
+   "sr_nb": 41.9,
+   "epa_b": 0.268,
+   "epa_nb": 0.31
+  },
+  {
+   "qb": "Rob Basso",
+   "team": "RAL",
+   "n_b": 96.0,
+   "n_nb": 170.0,
+   "sr_b": 43.8,
+   "sr_nb": 51.8,
+   "epa_b": 0.205,
+   "epa_nb": 0.224
+  },
+  {
+   "qb": "Micah Bergman",
+   "team": "LAS",
+   "n_b": 43.0,
+   "n_nb": 271.0,
+   "sr_b": 41.9,
+   "sr_nb": 39.9,
+   "epa_b": -0.256,
+   "epa_nb": -0.01
+  },
+  {
+   "qb": "Thomas Greer",
+   "team": "CAL",
+   "n_b": 58.0,
+   "n_nb": 190.0,
+   "sr_b": 41.4,
+   "sr_nb": 47.4,
+   "epa_b": 0.1,
+   "epa_nb": 0.07
+  },
+  {
+   "qb": "Patrick Kempthorne",
+   "team": "KCY",
+   "n_b": 66.0,
+   "n_nb": 217.0,
+   "sr_b": 40.9,
+   "sr_nb": 39.2,
+   "epa_b": 0.091,
+   "epa_nb": -0.175
+  },
+  {
+   "qb": "Warren Preston",
+   "team": "HAR",
+   "n_b": 49.0,
+   "n_nb": 168.0,
+   "sr_b": 40.8,
+   "sr_nb": 41.1,
+   "epa_b": 0.349,
+   "epa_nb": 0.084
+  },
+  {
+   "qb": "Herb Boltwood",
+   "team": "SAO",
+   "n_b": 60.0,
+   "n_nb": 195.0,
+   "sr_b": 40.0,
+   "sr_nb": 45.6,
+   "epa_b": -0.095,
+   "epa_nb": 0.164
+  },
+  {
+   "qb": "J.R. Gardner",
+   "team": "MUR",
+   "n_b": 61.0,
+   "n_nb": 235.0,
+   "sr_b": 39.3,
+   "sr_nb": 46.0,
+   "epa_b": 0.186,
+   "epa_nb": 0.31
+  },
+  {
+   "qb": "Jesse Kremers",
+   "team": "COL",
+   "n_b": 57.0,
+   "n_nb": 198.0,
+   "sr_b": 38.6,
+   "sr_nb": 42.4,
+   "epa_b": -0.06,
+   "epa_nb": 0.129
+  },
+  {
+   "qb": "Don Hutton",
+   "team": "NFK",
+   "n_b": 60.0,
+   "n_nb": 170.0,
+   "sr_b": 38.3,
+   "sr_nb": 32.4,
+   "epa_b": 0.027,
+   "epa_nb": -0.002
+  },
+  {
+   "qb": "Monty Doiron",
+   "team": "BOS",
+   "n_b": 85.0,
+   "n_nb": 193.0,
+   "sr_b": 35.3,
+   "sr_nb": 41.5,
+   "epa_b": 0.052,
+   "epa_nb": 0.035
+  },
+  {
+   "qb": "Glenn Pierce",
+   "team": "WVA",
+   "n_b": 55.0,
+   "n_nb": 177.0,
+   "sr_b": 34.5,
+   "sr_nb": 47.5,
+   "epa_b": 0.19,
+   "epa_nb": 0.262
+  },
+  {
+   "qb": "Cornelius Stone",
+   "team": "MIA",
+   "n_b": 35.0,
+   "n_nb": 151.0,
+   "sr_b": 34.3,
+   "sr_nb": 33.1,
+   "epa_b": -0.247,
+   "epa_nb": -0.306
+  },
+  {
+   "qb": "Cristian Godfrey",
+   "team": "MON",
+   "n_b": 50.0,
+   "n_nb": 160.0,
+   "sr_b": 34.0,
+   "sr_nb": 31.9,
+   "epa_b": -0.085,
+   "epa_nb": -0.022
+  },
+  {
+   "qb": "Marlon McGee",
+   "team": "SLC",
+   "n_b": 25.0,
+   "n_nb": 227.0,
+   "sr_b": 32.0,
+   "sr_nb": 37.4,
+   "epa_b": 0.334,
+   "epa_nb": -0.043
+  },
+  {
+   "qb": "Jimmy Pritchett",
+   "team": "STC",
+   "n_b": 47.0,
+   "n_nb": 110.0,
+   "sr_b": 27.7,
+   "sr_nb": 25.5,
+   "epa_b": -0.199,
+   "epa_nb": -0.411
+  },
+  {
+   "qb": "Courtney Serbicki",
+   "team": "PIT",
+   "n_b": 70.0,
+   "n_nb": 192.0,
+   "sr_b": 24.3,
+   "sr_nb": 31.2,
+   "epa_b": -0.155,
+   "epa_nb": -0.176
+  },
+  {
+   "qb": "Burt Madison",
+   "team": "ORL",
+   "n_b": 59.0,
+   "n_nb": 189.0,
+   "sr_b": 23.7,
+   "sr_nb": 26.5,
+   "epa_b": -0.179,
+   "epa_nb": -0.177
+  }
+ ],
+ "qb_league": {
+  "sr_b": 41.4,
+  "sr_nb": 41.4,
+  "epa_b": 0.104,
+  "epa_nb": 0.08
+ },
+ "blitz_out": [
+  {
+   "team": "LVS",
+   "n": 4.0,
+   "sack": 25.0,
+   "inc": 50.0,
+   "int": 0.0,
+   "epa": 0.26,
+   "nb_sack": 6.33,
+   "nb_inc": 25.74,
+   "nb_int": 2.95,
+   "nb_epa": -0.04,
+   "disrupt": 75.0
+  },
+  {
+   "team": "CAL",
+   "n": 7.0,
+   "sack": 0.0,
+   "inc": 57.14,
+   "int": 0.0,
+   "epa": 1.03,
+   "nb_sack": 4.9,
+   "nb_inc": 26.92,
+   "nb_int": 3.15,
+   "nb_epa": 0.01,
+   "disrupt": 57.14
+  },
+  {
+   "team": "TEX",
+   "n": 69.0,
+   "sack": 14.49,
+   "inc": 36.23,
+   "int": 1.45,
+   "epa": -0.02,
+   "nb_sack": 2.56,
+   "nb_inc": 30.77,
+   "nb_int": 0.0,
+   "nb_epa": 0.1,
+   "disrupt": 52.17
+  },
+  {
+   "team": "MAD",
+   "n": 56.0,
+   "sack": 3.57,
+   "inc": 35.71,
+   "int": 5.36,
+   "epa": 0.32,
+   "nb_sack": 8.99,
+   "nb_inc": 25.84,
+   "nb_int": 1.12,
+   "nb_epa": 0.05,
+   "disrupt": 44.64
+  },
+  {
+   "team": "KCY",
+   "n": 139.0,
+   "sack": 10.07,
+   "inc": 28.06,
+   "int": 1.44,
+   "epa": -0.07,
+   "nb_sack": 7.64,
+   "nb_inc": 31.85,
+   "nb_int": 0.64,
+   "nb_epa": 0.04,
+   "disrupt": 39.57
+  },
+  {
+   "team": "MON",
+   "n": 41.0,
+   "sack": 12.2,
+   "inc": 26.83,
+   "int": 0.0,
+   "epa": 0.06,
+   "nb_sack": 2.66,
+   "nb_inc": 26.06,
+   "nb_int": 1.06,
+   "nb_epa": 0.09,
+   "disrupt": 39.02
+  },
+  {
+   "team": "NFK",
+   "n": 72.0,
+   "sack": 9.72,
+   "inc": 27.78,
+   "int": 1.39,
+   "epa": -0.02,
+   "nb_sack": 4.66,
+   "nb_inc": 30.05,
+   "nb_int": 2.07,
+   "nb_epa": 0.07,
+   "disrupt": 38.89
+  },
+  {
+   "team": "WVA",
+   "n": 26.0,
+   "sack": 0.0,
+   "inc": 34.62,
+   "int": 3.85,
+   "epa": 0.43,
+   "nb_sack": 4.29,
+   "nb_inc": 22.86,
+   "nb_int": 2.86,
+   "nb_epa": 0.18,
+   "disrupt": 38.46
+  },
+  {
+   "team": "RAL",
+   "n": 107.0,
+   "sack": 7.48,
+   "inc": 28.97,
+   "int": 1.87,
+   "epa": -0.02,
+   "nb_sack": 4.84,
+   "nb_inc": 23.66,
+   "nb_int": 2.69,
+   "nb_epa": 0.11,
+   "disrupt": 38.32
+  },
+  {
+   "team": "MCA",
+   "n": 51.0,
+   "sack": 9.8,
+   "inc": 25.49,
+   "int": 1.96,
+   "epa": 0.22,
+   "nb_sack": 4.6,
+   "nb_inc": 26.44,
+   "nb_int": 1.53,
+   "nb_epa": 0.01,
+   "disrupt": 37.25
+  },
+  {
+   "team": "ORL",
+   "n": 184.0,
+   "sack": 7.07,
+   "inc": 27.72,
+   "int": 2.17,
+   "epa": -0.03,
+   "nb_sack": 1.49,
+   "nb_inc": 43.28,
+   "nb_int": 1.49,
+   "nb_epa": 0.28,
+   "disrupt": 36.96
+  },
+  {
+   "team": "IWC",
+   "n": 103.0,
+   "sack": 6.8,
+   "inc": 28.16,
+   "int": 1.94,
+   "epa": -0.04,
+   "nb_sack": 5.04,
+   "nb_inc": 29.5,
+   "nb_int": 2.16,
+   "nb_epa": 0.28,
+   "disrupt": 36.89
+  },
+  {
+   "team": "SLC",
+   "n": 11.0,
+   "sack": 9.09,
+   "inc": 27.27,
+   "int": 0.0,
+   "epa": 0.0,
+   "nb_sack": 3.92,
+   "nb_inc": 29.41,
+   "nb_int": 0.98,
+   "nb_epa": 0.3,
+   "disrupt": 36.36
+  },
+  {
+   "team": "SAO",
+   "n": 98.0,
+   "sack": 6.12,
+   "inc": 25.51,
+   "int": 4.08,
+   "epa": -0.09,
+   "nb_sack": 2.94,
+   "nb_inc": 33.82,
+   "nb_int": 2.94,
+   "nb_epa": -0.0,
+   "disrupt": 35.71
+  },
+  {
+   "team": "HAR",
+   "n": 154.0,
+   "sack": 4.55,
+   "inc": 25.97,
+   "int": 1.95,
+   "epa": 0.05,
+   "nb_sack": 2.06,
+   "nb_inc": 22.68,
+   "nb_int": 2.06,
+   "nb_epa": 0.23,
+   "disrupt": 32.47
+  },
+  {
+   "team": "GEO",
+   "n": 68.0,
+   "sack": 1.47,
+   "inc": 27.94,
+   "int": 1.47,
+   "epa": 0.22,
+   "nb_sack": 1.12,
+   "nb_inc": 32.4,
+   "nb_int": 1.68,
+   "nb_epa": 0.13,
+   "disrupt": 30.88
+  },
+  {
+   "team": "PIT",
+   "n": 134.0,
+   "sack": 3.73,
+   "inc": 26.87,
+   "int": 0.0,
+   "epa": 0.22,
+   "nb_sack": 3.3,
+   "nb_inc": 14.29,
+   "nb_int": 3.3,
+   "nb_epa": 0.31,
+   "disrupt": 30.6
+  },
+  {
+   "team": "COL",
+   "n": 100.0,
+   "sack": 8.0,
+   "inc": 21.0,
+   "int": 1.0,
+   "epa": 0.35,
+   "nb_sack": 1.16,
+   "nb_inc": 31.79,
+   "nb_int": 1.16,
+   "nb_epa": 0.26,
+   "disrupt": 30.0
+  },
+  {
+   "team": "DAK",
+   "n": 62.0,
+   "sack": 1.61,
+   "inc": 27.42,
+   "int": 0.0,
+   "epa": 0.12,
+   "nb_sack": 5.33,
+   "nb_inc": 26.63,
+   "nb_int": 1.78,
+   "nb_epa": 0.04,
+   "disrupt": 29.03
+  },
+  {
+   "team": "CSP",
+   "n": 28.0,
+   "sack": 14.29,
+   "inc": 14.29,
+   "int": 0.0,
+   "epa": 0.37,
+   "nb_sack": 4.52,
+   "nb_inc": 26.13,
+   "nb_int": 3.52,
+   "nb_epa": -0.03,
+   "disrupt": 28.57
+  },
+  {
+   "team": "APB",
+   "n": 21.0,
+   "sack": 4.76,
+   "inc": 23.81,
+   "int": 0.0,
+   "epa": -0.02,
+   "nb_sack": 4.98,
+   "nb_inc": 29.88,
+   "nb_int": 2.9,
+   "nb_epa": -0.01,
+   "disrupt": 28.57
+  },
+  {
+   "team": "HOR",
+   "n": 121.0,
+   "sack": 4.96,
+   "inc": 22.31,
+   "int": 0.0,
+   "epa": 0.25,
+   "nb_sack": 3.01,
+   "nb_inc": 24.81,
+   "nb_int": 2.26,
+   "nb_epa": 0.2,
+   "disrupt": 27.27
+  },
+  {
+   "team": "MIA",
+   "n": 42.0,
+   "sack": 0.0,
+   "inc": 23.81,
+   "int": 2.38,
+   "epa": 0.29,
+   "nb_sack": 7.52,
+   "nb_inc": 26.99,
+   "nb_int": 2.21,
+   "nb_epa": -0.11,
+   "disrupt": 26.19
+  },
+  {
+   "team": "STC",
+   "n": 16.0,
+   "sack": 12.5,
+   "inc": 12.5,
+   "int": 0.0,
+   "epa": 0.85,
+   "nb_sack": 4.0,
+   "nb_inc": 28.0,
+   "nb_int": 4.0,
+   "nb_epa": 0.08,
+   "disrupt": 25.0
+  },
+  {
+   "team": "POR",
+   "n": 67.0,
+   "sack": 1.49,
+   "inc": 19.4,
+   "int": 2.99,
+   "epa": 0.03,
+   "nb_sack": 4.86,
+   "nb_inc": 32.43,
+   "nb_int": 1.62,
+   "nb_epa": 0.01,
+   "disrupt": 23.88
+  },
+  {
+   "team": "LON",
+   "n": 28.0,
+   "sack": 0.0,
+   "inc": 17.86,
+   "int": 3.57,
+   "epa": 0.05,
+   "nb_sack": 4.0,
+   "nb_inc": 24.5,
+   "nb_int": 0.5,
+   "nb_epa": 0.25,
+   "disrupt": 21.43
+  },
+  {
+   "team": "TIJ",
+   "n": 6.0,
+   "sack": 16.67,
+   "inc": 0.0,
+   "int": 0.0,
+   "epa": 0.13,
+   "nb_sack": 4.02,
+   "nb_inc": 28.11,
+   "nb_int": 4.82,
+   "nb_epa": -0.05,
+   "disrupt": 16.67
+  },
+  {
+   "team": "VAN",
+   "n": 1.0,
+   "sack": 0.0,
+   "inc": 0.0,
+   "int": 0.0,
+   "epa": 0.56,
+   "nb_sack": 5.96,
+   "nb_inc": 27.27,
+   "nb_int": 2.19,
+   "nb_epa": 0.1,
+   "disrupt": 0.0
+  },
+  {
+   "team": "LAS",
+   "n": 2.0,
+   "sack": 0.0,
+   "inc": 0.0,
+   "int": 0.0,
+   "epa": 2.96,
+   "nb_sack": 5.0,
+   "nb_inc": 33.24,
+   "nb_int": 0.88,
+   "nb_epa": -0.01,
+   "disrupt": 0.0
+  }
+ ],
+ "blitz_out_league": {
+  "n": 1818.0,
+  "sack": 6.38,
+  "inc": 26.46,
+  "int": 1.65,
+  "epa": 0.1
+ },
+ "noblitz_out_league": {
+  "n": 6574.0,
+  "sack": 4.43,
+  "inc": 27.84,
+  "int": 2.13,
+  "epa": 0.08
+ },
+ "sticks": [
+  {
+   "qb": "Marlon McGee",
+   "team": "SLC",
+   "n_b": 22.0,
+   "n_nb": 212.0,
+   "st_b": 22.7,
+   "st_nb": 25.5
+  },
+  {
+   "qb": "Burt Madison",
+   "team": "ORL",
+   "n_b": 47.0,
+   "n_nb": 161.0,
+   "st_b": 25.5,
+   "st_nb": 32.9
+  },
+  {
+   "qb": "Rob Basso",
+   "team": "RAL",
+   "n_b": 92.0,
+   "n_nb": 162.0,
+   "st_b": 29.3,
+   "st_nb": 44.4
+  },
+  {
+   "qb": "Jesse Frederick",
+   "team": "LON",
+   "n_b": 30.0,
+   "n_nb": 168.0,
+   "st_b": 30.0,
+   "st_nb": 39.3
+  },
+  {
+   "qb": "Glenn Pierce",
+   "team": "WVA",
+   "n_b": 51.0,
+   "n_nb": 166.0,
+   "st_b": 31.4,
+   "st_nb": 43.4
+  },
+  {
+   "qb": "Don Hutton",
+   "team": "NFK",
+   "n_b": 55.0,
+   "n_nb": 158.0,
+   "st_b": 32.7,
+   "st_nb": 34.2
+  },
+  {
+   "qb": "Courtney Serbicki",
+   "team": "PIT",
+   "n_b": 54.0,
+   "n_nb": 162.0,
+   "st_b": 33.3,
+   "st_nb": 42.6
+  },
+  {
+   "qb": "Wade Jude",
+   "team": "VAN",
+   "n_b": 67.0,
+   "n_nb": 148.0,
+   "st_b": 35.8,
+   "st_nb": 33.1
+  },
+  {
+   "qb": "Jesse Kremers",
+   "team": "COL",
+   "n_b": 52.0,
+   "n_nb": 186.0,
+   "st_b": 36.5,
+   "st_nb": 47.8
+  },
+  {
+   "qb": "Patrick Kempthorne",
+   "team": "KCY",
+   "n_b": 58.0,
+   "n_nb": 170.0,
+   "st_b": 37.9,
+   "st_nb": 42.9
+  },
+  {
+   "qb": "Cornelius Stone",
+   "team": "MIA",
+   "n_b": 29.0,
+   "n_nb": 134.0,
+   "st_b": 41.4,
+   "st_nb": 30.6
+  },
+  {
+   "qb": "Ethan Dilday",
+   "team": "MCA",
+   "n_b": 53.0,
+   "n_nb": 211.0,
+   "st_b": 43.4,
+   "st_nb": 45.0
+  },
+  {
+   "qb": "Pedro Shannon",
+   "team": "GEO",
+   "n_b": 46.0,
+   "n_nb": 168.0,
+   "st_b": 43.5,
+   "st_nb": 39.3
+  },
+  {
+   "qb": "Andrew Carpenter",
+   "team": "HOU",
+   "n_b": 36.0,
+   "n_nb": 68.0,
+   "st_b": 47.2,
+   "st_nb": 42.6
+  },
+  {
+   "qb": "Jimmy Pritchett",
+   "team": "STC",
+   "n_b": 38.0,
+   "n_nb": 91.0,
+   "st_b": 47.4,
+   "st_nb": 42.9
+  },
+  {
+   "qb": "Thomas Greer",
+   "team": "CAL",
+   "n_b": 52.0,
+   "n_nb": 166.0,
+   "st_b": 48.1,
+   "st_nb": 44.0
+  },
+  {
+   "qb": "Donny Witt",
+   "team": "MAD",
+   "n_b": 37.0,
+   "n_nb": 220.0,
+   "st_b": 48.6,
+   "st_nb": 61.8
+  },
+  {
+   "qb": "Herb Boltwood",
+   "team": "SAO",
+   "n_b": 55.0,
+   "n_nb": 185.0,
+   "st_b": 49.1,
+   "st_nb": 49.7
+  },
+  {
+   "qb": "Warren Preston",
+   "team": "HAR",
+   "n_b": 42.0,
+   "n_nb": 144.0,
+   "st_b": 52.4,
+   "st_nb": 39.6
+  },
+  {
+   "qb": "Cristian Godfrey",
+   "team": "MON",
+   "n_b": 47.0,
+   "n_nb": 155.0,
+   "st_b": 53.2,
+   "st_nb": 45.2
+  },
+  {
+   "qb": "J.R. Gardner",
+   "team": "MUR",
+   "n_b": 55.0,
+   "n_nb": 228.0,
+   "st_b": 54.5,
+   "st_nb": 47.8
+  },
+  {
+   "qb": "Morris Davis",
+   "team": "DAK",
+   "n_b": 41.0,
+   "n_nb": 178.0,
+   "st_b": 56.1,
+   "st_nb": 64.6
+  },
+  {
+   "qb": "Micah Bergman",
+   "team": "LAS",
+   "n_b": 37.0,
+   "n_nb": 235.0,
+   "st_b": 56.8,
+   "st_nb": 54.9
+  },
+  {
+   "qb": "Monty Doiron",
+   "team": "BOS",
+   "n_b": 71.0,
+   "n_nb": 175.0,
+   "st_b": 57.7,
+   "st_nb": 48.6
+  },
+  {
+   "qb": "Jessie Brandon",
+   "team": "HOU",
+   "n_b": 27.0,
+   "n_nb": 110.0,
+   "st_b": 59.3,
+   "st_nb": 37.3
+  },
+  {
+   "qb": "Brenden Lord",
+   "team": "TIJ",
+   "n_b": 47.0,
+   "n_nb": 54.0,
+   "st_b": 61.7,
+   "st_nb": 64.8
+  },
+  {
+   "qb": "Kai Posey",
+   "team": "TEX",
+   "n_b": 66.0,
+   "n_nb": 191.0,
+   "st_b": 65.2,
+   "st_nb": 65.4
+  },
+  {
+   "qb": "Paul Welch",
+   "team": "CSP",
+   "n_b": 29.0,
+   "n_nb": 130.0,
+   "st_b": 65.5,
+   "st_nb": 53.8
+  },
+  {
+   "qb": "Trey Cook",
+   "team": "LVS",
+   "n_b": 59.0,
+   "n_nb": 136.0,
+   "st_b": 66.1,
+   "st_nb": 60.3
+  }
+ ],
+ "sticks_league": {
+  "st_b": 45.0,
+  "st_nb": 45.6
+ },
+ "team_streaks": [
+  {
+   "team": "WVA",
+   "active": 16,
+   "sacks": 32.0,
+   "best78": 6,
+   "g78": 6,
+   "zero78": 0,
+   "sk78": 9.0,
+   "since": 207709,
+   "weeks78": {
+    "1": 2.0,
+    "2": 1.0,
+    "3": 2.0,
+    "4": 1.0,
+    "5": 1.0,
+    "7": 2.0
+   },
+   "playoff": 1
+  },
+  {
+   "team": "KCY",
+   "active": 9,
+   "sacks": 32.0,
+   "best78": 7,
+   "g78": 7,
+   "zero78": 0,
+   "sk78": 26.0,
+   "since": 207716,
+   "weeks78": {
+    "1": 4.0,
+    "2": 4.0,
+    "3": 10.0,
+    "4": 3.0,
+    "5": 1.0,
+    "6": 3.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "MIA",
+   "active": 9,
+   "sacks": 24.0,
+   "best78": 7,
+   "g78": 7,
+   "zero78": 0,
+   "sk78": 17.0,
+   "since": 207716,
+   "weeks78": {
+    "1": 1.0,
+    "2": 3.0,
+    "3": 6.0,
+    "4": 2.0,
+    "5": 3.0,
+    "6": 1.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "TEX",
+   "active": 9,
+   "sacks": 22.0,
+   "best78": 7,
+   "g78": 7,
+   "zero78": 0,
+   "sk78": 16.0,
+   "since": 207717,
+   "weeks78": {
+    "1": 3.0,
+    "2": 2.0,
+    "3": 1.0,
+    "4": 2.0,
+    "5": 1.0,
+    "6": 5.0,
+    "7": 2.0
+   },
+   "playoff": 1
+  },
+  {
+   "team": "ORL",
+   "active": 7,
+   "sacks": 16.0,
+   "best78": 6,
+   "g78": 6,
+   "zero78": 0,
+   "sk78": 14.0,
+   "since": 207717,
+   "weeks78": {
+    "1": 4.0,
+    "2": 2.0,
+    "3": 2.0,
+    "4": 2.0,
+    "5": 2.0,
+    "7": 2.0
+   }
+  },
+  {
+   "team": "NFK",
+   "active": 6,
+   "sacks": 16.0,
+   "best78": 6,
+   "g78": 6,
+   "zero78": 0,
+   "sk78": 16.0,
+   "since": 207801,
+   "weeks78": {
+    "1": 1.0,
+    "2": 4.0,
+    "3": 2.0,
+    "4": 5.0,
+    "5": 2.0,
+    "7": 2.0
+   }
+  },
+  {
+   "team": "APB",
+   "active": 6,
+   "sacks": 13.0,
+   "best78": 6,
+   "g78": 6,
+   "zero78": 0,
+   "sk78": 13.0,
+   "since": 207801,
+   "weeks78": {
+    "1": 1.0,
+    "2": 2.0,
+    "3": 2.0,
+    "4": 4.0,
+    "6": 3.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "IWC",
+   "active": 5,
+   "sacks": 14.0,
+   "best78": 5,
+   "g78": 6,
+   "zero78": 1,
+   "sk78": 14.0,
+   "since": 207802,
+   "weeks78": {
+    "1": 0.0,
+    "2": 1.0,
+    "3": 2.0,
+    "5": 5.0,
+    "6": 5.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "SAO",
+   "active": 5,
+   "sacks": 10.0,
+   "best78": 5,
+   "g78": 7,
+   "zero78": 1,
+   "sk78": 12.0,
+   "since": 207803,
+   "weeks78": {
+    "1": 2.0,
+    "2": 0.0,
+    "3": 1.0,
+    "4": 1.0,
+    "5": 5.0,
+    "6": 1.0,
+    "7": 2.0
+   }
+  },
+  {
+   "team": "CAL",
+   "active": 4,
+   "sacks": 13.0,
+   "best78": 4,
+   "g78": 7,
+   "zero78": 2,
+   "sk78": 14.0,
+   "since": 207804,
+   "weeks78": {
+    "1": 0.0,
+    "2": 1.0,
+    "3": 0.0,
+    "4": 4.0,
+    "5": 2.0,
+    "6": 4.0,
+    "7": 3.0
+   }
+  },
+  {
+   "team": "TIJ",
+   "active": 4,
+   "sacks": 10.0,
+   "best78": 4,
+   "g78": 7,
+   "zero78": 2,
+   "sk78": 11.0,
+   "since": 207804,
+   "weeks78": {
+    "1": 1.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 4.0,
+    "5": 3.0,
+    "6": 2.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "MON",
+   "active": 4,
+   "sacks": 8.0,
+   "best78": 4,
+   "g78": 6,
+   "zero78": 1,
+   "sk78": 10.0,
+   "since": 207803,
+   "weeks78": {
+    "1": 2.0,
+    "2": 0.0,
+    "3": 2.0,
+    "4": 2.0,
+    "5": 1.0,
+    "6": 3.0
+   }
+  },
+  {
+   "team": "STC",
+   "active": 3,
+   "sacks": 6.0,
+   "best78": 3,
+   "g78": 6,
+   "zero78": 1,
+   "sk78": 10.0,
+   "since": 207804,
+   "weeks78": {
+    "1": 3.0,
+    "2": 1.0,
+    "3": 0.0,
+    "4": 3.0,
+    "5": 1.0,
+    "6": 2.0
+   }
+  },
+  {
+   "team": "POR",
+   "active": 3,
+   "sacks": 9.0,
+   "best78": 3,
+   "g78": 6,
+   "zero78": 2,
+   "sk78": 10.0,
+   "since": 207804,
+   "weeks78": {
+    "1": 1.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 3.0,
+    "6": 3.0,
+    "7": 3.0
+   }
+  },
+  {
+   "team": "LVS",
+   "active": 2,
+   "sacks": 8.0,
+   "best78": 3,
+   "g78": 6,
+   "zero78": 1,
+   "sk78": 16.0,
+   "since": 207806,
+   "weeks78": {
+    "1": 2.0,
+    "2": 3.0,
+    "3": 3.0,
+    "5": 0.0,
+    "6": 3.0,
+    "7": 5.0
+   }
+  },
+  {
+   "team": "BOS",
+   "active": 2,
+   "sacks": 5.0,
+   "best78": 2,
+   "g78": 7,
+   "zero78": 3,
+   "sk78": 8.0,
+   "since": 207806,
+   "weeks78": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 1.0,
+    "4": 2.0,
+    "5": 0.0,
+    "6": 3.0,
+    "7": 2.0
+   }
+  },
+  {
+   "team": "VAN",
+   "active": 1,
+   "sacks": 7.0,
+   "best78": 4,
+   "g78": 7,
+   "zero78": 2,
+   "sk78": 19.0,
+   "since": 207807,
+   "weeks78": {
+    "1": 3.0,
+    "2": 3.0,
+    "3": 3.0,
+    "4": 3.0,
+    "5": 0.0,
+    "6": 0.0,
+    "7": 7.0
+   }
+  },
+  {
+   "team": "LAS",
+   "active": 1,
+   "sacks": 1.0,
+   "best78": 2,
+   "g78": 7,
+   "zero78": 2,
+   "sk78": 17.0,
+   "since": 207807,
+   "weeks78": {
+    "1": 3.0,
+    "2": 3.0,
+    "3": 0.0,
+    "4": 8.0,
+    "5": 2.0,
+    "6": 0.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "MCA",
+   "active": 1,
+   "sacks": 3.0,
+   "best78": 5,
+   "g78": 7,
+   "zero78": 1,
+   "sk78": 17.0,
+   "since": 207807,
+   "weeks78": {
+    "1": 3.0,
+    "2": 5.0,
+    "3": 1.0,
+    "4": 4.0,
+    "5": 1.0,
+    "6": 0.0,
+    "7": 3.0
+   }
+  },
+  {
+   "team": "CSP",
+   "active": 1,
+   "sacks": 1.0,
+   "best78": 2,
+   "g78": 6,
+   "zero78": 2,
+   "sk78": 13.0,
+   "since": 207807,
+   "weeks78": {
+    "1": 2.0,
+    "2": 0.0,
+    "3": 5.0,
+    "5": 5.0,
+    "6": 0.0,
+    "7": 1.0
+   }
+  },
+  {
+   "team": "HOR",
+   "active": 1,
+   "sacks": 2.0,
+   "best78": 3,
+   "g78": 6,
+   "zero78": 2,
+   "sk78": 10.0,
+   "since": 207807,
+   "weeks78": {
+    "1": 0.0,
+    "2": 4.0,
+    "3": 2.0,
+    "4": 2.0,
+    "6": 0.0,
+    "7": 2.0
+   }
+  },
+  {
+   "team": "DAK",
+   "active": 1,
+   "sacks": 1.0,
+   "best78": 4,
+   "g78": 6,
+   "zero78": 1,
+   "sk78": 10.0,
+   "since": 207806,
+   "weeks78": {
+    "1": 1.0,
+    "2": 4.0,
+    "3": 2.0,
+    "4": 2.0,
+    "5": 0.0,
+    "6": 1.0
+   }
+  },
+  {
+   "team": "HAR",
+   "active": 1,
+   "sacks": 4.0,
+   "best78": 1,
+   "g78": 7,
+   "zero78": 3,
+   "sk78": 9.0,
+   "since": 207807,
+   "weeks78": {
+    "1": 1.0,
+    "2": 0.0,
+    "3": 1.0,
+    "4": 0.0,
+    "5": 3.0,
+    "6": 0.0,
+    "7": 4.0
+   }
+  },
+  {
+   "team": "MAD",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 5,
+   "g78": 6,
+   "zero78": 1,
+   "sk78": 18.0,
+   "since": null,
+   "weeks78": {
+    "1": 4.0,
+    "2": 3.0,
+    "3": 3.0,
+    "4": 5.0,
+    "5": 3.0,
+    "6": 0.0
+   }
+  },
+  {
+   "team": "RAL",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 6,
+   "g78": 7,
+   "zero78": 1,
+   "sk78": 17.0,
+   "since": null,
+   "weeks78": {
+    "1": 2.0,
+    "2": 1.0,
+    "3": 10.0,
+    "4": 1.0,
+    "5": 2.0,
+    "6": 1.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "HOU",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 3,
+   "g78": 7,
+   "zero78": 2,
+   "sk78": 12.0,
+   "since": null,
+   "weeks78": {
+    "1": 2.0,
+    "2": 1.0,
+    "3": 4.0,
+    "4": 0.0,
+    "5": 2.0,
+    "6": 3.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "MUR",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 3,
+   "g78": 7,
+   "zero78": 3,
+   "sk78": 11.0,
+   "since": null,
+   "weeks78": {
+    "1": 2.0,
+    "2": 0.0,
+    "3": 5.0,
+    "4": 1.0,
+    "5": 3.0,
+    "6": 0.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "COL",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 5,
+   "g78": 7,
+   "zero78": 2,
+   "sk78": 10.0,
+   "since": null,
+   "weeks78": {
+    "1": 2.0,
+    "2": 1.0,
+    "3": 3.0,
+    "4": 2.0,
+    "5": 2.0,
+    "6": 0.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "SLC",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 2,
+   "g78": 6,
+   "zero78": 2,
+   "sk78": 9.0,
+   "since": null,
+   "weeks78": {
+    "1": 2.0,
+    "2": 1.0,
+    "3": 0.0,
+    "4": 5.0,
+    "6": 1.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "LON",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 2,
+   "g78": 7,
+   "zero78": 4,
+   "sk78": 8.0,
+   "since": null,
+   "weeks78": {
+    "1": 3.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 2.0,
+    "5": 3.0,
+    "6": 0.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "PIT",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 2,
+   "g78": 6,
+   "zero78": 2,
+   "sk78": 8.0,
+   "since": null,
+   "weeks78": {
+    "1": 1.0,
+    "2": 3.0,
+    "3": 0.0,
+    "5": 1.0,
+    "6": 3.0,
+    "7": 0.0
+   }
+  },
+  {
+   "team": "GEO",
+   "active": 0,
+   "sacks": 0.0,
+   "best78": 2,
+   "g78": 6,
+   "zero78": 4,
+   "sk78": 3.0,
+   "since": null,
+   "weeks78": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 1.0,
+    "4": 2.0,
+    "5": 0.0,
+    "7": 0.0
+   }
+  }
+ ],
+ "player_streaks": [
+  {
+   "name": "Morris Easterling",
+   "Position": "LDE",
+   "team": "CAL",
+   "active": 4,
+   "sacks": 4.5,
+   "since": 207804.0,
+   "last_t": 207807,
+   "sk78": 4.5
+  },
+  {
+   "name": "Cristian Sanderson",
+   "Position": "RDE",
+   "team": "TIJ",
+   "active": 4,
+   "sacks": 4.0,
+   "since": 207804.0,
+   "last_t": 207807,
+   "sk78": 4.5
+  },
+  {
+   "name": "Jerry Wahl",
+   "Position": "LDE",
+   "team": "POR",
+   "active": 3,
+   "sacks": 4.5,
+   "since": 207804.0,
+   "last_t": 207807,
+   "sk78": 5.0
+  },
+  {
+   "name": "Damon Olshansky",
+   "Position": "RDE",
+   "team": "IWC",
+   "active": 3,
+   "sacks": 3.5,
+   "since": 207805.0,
+   "last_t": 207807,
+   "sk78": 3.5
+  },
+  {
+   "name": "Donte Collins",
+   "Position": "WLB",
+   "team": "NFK",
+   "active": 3,
+   "sacks": 3.5,
+   "since": 207804.0,
+   "last_t": 207807,
+   "sk78": 5.5
+  },
+  {
+   "name": "Brian Ertmann",
+   "Position": "RDE",
+   "team": "MIA",
+   "active": 3,
+   "sacks": 2.5,
+   "since": 207805.0,
+   "last_t": 207807,
+   "sk78": 5.5
+  },
+  {
+   "name": "Miguel Lengfelder",
+   "Position": "RDE",
+   "team": "POR",
+   "active": 3,
+   "sacks": 1.5,
+   "since": 207804.0,
+   "last_t": 207807,
+   "sk78": 1.5
+  },
+  {
+   "name": "Luke Alexander",
+   "Position": "RDE",
+   "team": "KCY",
+   "active": 2,
+   "sacks": 2.0,
+   "since": 207806.0,
+   "last_t": 207807,
+   "sk78": 7.0
+  },
+  {
+   "name": "Stephen Brovins",
+   "Position": "RDE",
+   "team": "STC",
+   "active": 2,
+   "sacks": 2.0,
+   "since": 207805.0,
+   "last_t": 207806,
+   "sk78": 3.0
+  },
+  {
+   "name": "Lester Gaines",
+   "Position": "RCB",
+   "team": "CAL",
+   "active": 2,
+   "sacks": 1.5,
+   "since": 207806.0,
+   "last_t": 207807,
+   "sk78": 1.5
+  },
+  {
+   "name": "Deion Cooley",
+   "Position": "LDE",
+   "team": "LVS",
+   "active": 2,
+   "sacks": 1.5,
+   "since": 207806.0,
+   "last_t": 207807,
+   "sk78": 3.5
+  },
+  {
+   "name": "Roger Lindsay",
+   "Position": "LDT",
+   "team": "IWC",
+   "active": 2,
+   "sacks": 1.5,
+   "since": 207806.0,
+   "last_t": 207807,
+   "sk78": 1.5
+  }
+ ],
+ "colors": {
+  "APB": {
+   "fill": "#00adef",
+   "chip": "#00adef",
+   "chiptext": "#002365",
+   "label": "#00adef"
+  },
+  "BOS": {
+   "fill": "#b31c27",
+   "chip": "#d1777d",
+   "chiptext": "#1c252c",
+   "label": "#ca6068"
+  },
+  "CAL": {
+   "fill": "#c20007",
+   "chip": "#c20007",
+   "chiptext": "#ffffff",
+   "label": "#da666a"
+  },
+  "CSP": {
+   "fill": "#f9b617",
+   "chip": "#f9b617",
+   "chiptext": "#4b014b",
+   "label": "#f9b617"
+  },
+  "COL": {
+   "fill": "#e61938",
+   "chip": "#e61938",
+   "chiptext": "#000000",
+   "label": "#ec526a"
+  },
+  "DAK": {
+   "fill": "#ff6800",
+   "chip": "#bf4e00",
+   "chiptext": "#ffff00",
+   "label": "#ff6800"
+  },
+  "GEO": {
+   "fill": "#a4131a",
+   "chip": "#8b1016",
+   "chiptext": "#acb4b9",
+   "label": "#c4666a"
+  },
+  "HAR": {
+   "fill": "#0c8041",
+   "chip": "#085a2e",
+   "chiptext": "#c0c0c0",
+   "label": "#49a070"
+  },
+  "HOR": {
+   "fill": "#b0891f",
+   "chip": "#b0891f",
+   "chiptext": "#04090c",
+   "label": "#b0891f"
+  },
+  "HOU": {
+   "fill": "#04a794",
+   "chip": "#037d6f",
+   "chiptext": "#ffffff",
+   "label": "#1db09f"
+  },
+  "IWC": {
+   "fill": "#5f1f1d",
+   "chip": "#5f1f1d",
+   "chiptext": "#efd9b1",
+   "label": "#9f7977"
+  },
+  "KCY": {
+   "fill": "#ad9b58",
+   "chip": "#ad9b58",
+   "chiptext": "#020202",
+   "label": "#ad9b58"
+  },
+  "LVS": {
+   "fill": "#757374",
+   "chip": "#757374",
+   "chiptext": "#fefefe",
+   "label": "#838182"
+  },
+  "LON": {
+   "fill": "#c0c0c0",
+   "chip": "#c0c0c0",
+   "chiptext": "#0b21c3",
+   "label": "#c0c0c0"
+  },
+  "LAS": {
+   "fill": "#df3c0b",
+   "chip": "#df3c0b",
+   "chiptext": "#000000",
+   "label": "#e5633c"
+  },
+  "MAD": {
+   "fill": "#a80404",
+   "chip": "#c24f4f",
+   "chiptext": "#000000",
+   "label": "#cb6868"
+  },
+  "MCA": {
+   "fill": "#c3b254",
+   "chip": "#c3b254",
+   "chiptext": "#500101",
+   "label": "#c3b254"
+  },
+  "MIA": {
+   "fill": "#06a4b1",
+   "chip": "#06a4b1",
+   "chiptext": "#000000",
+   "label": "#1fadb9"
+  },
+  "MTL": {
+   "fill": "#17fc04",
+   "chip": "#17fc04",
+   "chiptext": "#63014d",
+   "label": "#17fc04"
+  },
+  "MUR": {
+   "fill": "#fde800",
+   "chip": "#fde800",
+   "chiptext": "#033b01",
+   "label": "#fde800"
+  },
+  "NFK": {
+   "fill": "#555d63",
+   "chip": "#1a1c1e",
+   "chiptext": "#ea5409",
+   "label": "#80868a"
+  },
+  "ORL": {
+   "fill": "#7c2594",
+   "chip": "#702185",
+   "chiptext": "#e5ac51",
+   "label": "#a366b4"
+  },
+  "PIT": {
+   "fill": "#ffb612",
+   "chip": "#ffb612",
+   "chiptext": "#000000",
+   "label": "#ffb612"
+  },
+  "POR": {
+   "fill": "#af0508",
+   "chip": "#c75052",
+   "chiptext": "#000000",
+   "label": "#cf696b"
+  },
+  "RAL": {
+   "fill": "#145ca7",
+   "chip": "#145ca7",
+   "chiptext": "#f8f8f8",
+   "label": "#5a8dc1"
+  },
+  "SLC": {
+   "fill": "#840505",
+   "chip": "#840505",
+   "chiptext": "#c8aa76",
+   "label": "#b56969"
+  },
+  "SAO": {
+   "fill": "#3952b5",
+   "chip": "#3952b5",
+   "chiptext": "#fef200",
+   "label": "#6a7dc8"
+  },
+  "STC": {
+   "fill": "#ce3433",
+   "chip": "#b92f2e",
+   "chiptext": "#f4e7ca",
+   "label": "#d85d5c"
+  },
+  "TEX": {
+   "fill": "#fbc769",
+   "chip": "#fbc769",
+   "chiptext": "#090909",
+   "label": "#fbc769"
+  },
+  "TIJ": {
+   "fill": "#027e18",
+   "chip": "#025e12",
+   "chiptext": "#ebc307",
+   "label": "#4ea55d"
+  },
+  "VAN": {
+   "fill": "#498f99",
+   "chip": "#498f99",
+   "chiptext": "#030403",
+   "label": "#52959e"
+  },
+  "WVA": {
+   "fill": "#492c07",
+   "chip": "#492c07",
+   "chiptext": "#d79724",
+   "label": "#92806a"
+  }
+ }
+};
+const H = {"span": "2060\u201377", "blitz_rec": [{"yr": "2062", "team": "APB", "n": 712, "blitz": 99.6, "ao": 15}, {"yr": "2061", "team": "APB", "n": 635, "blitz": 99.2, "ao": 3}, {"yr": "2067", "team": "DAK", "n": 711, "blitz": 95.2, "ao": 1}, {"yr": "2066", "team": "DAK", "n": 625, "blitz": 92.3, "ao": 0}, {"yr": "2060", "team": "COL", "n": 619, "blitz": 85.1, "ao": 0}], "ao_rec": [{"yr": "2075", "team": "ORL", "n": 669, "blitz": 66.5, "ao": 66}, {"yr": "2077", "team": "ORL", "n": 618, "blitz": 78.6, "ao": 63}, {"yr": "2074", "team": "ORL", "n": 667, "blitz": 61.9, "ao": 54}, {"yr": "2073", "team": "ORL", "n": 635, "blitz": 69.1, "ao": 51}, {"yr": "2076", "team": "HAR", "n": 656, "blitz": 37.5, "ao": 33}], "n": 390867, "blitz": 23.3, "by_year": {"2060": 25.2, "2061": 23.9, "2062": 23.0, "2063": 23.6, "2064": 22.3, "2065": 23.1, "2066": 22.6, "2067": 23.9, "2068": 19.8, "2069": 24.3, "2070": 23.0, "2071": 21.3, "2072": 21.6, "2073": 24.5, "2074": 23.7, "2075": 26.9, "2076": 23.7, "2077": 23.3}, "sr_b": 40.5, "sr_nb": 41.5, "sack_b": 6.3, "sack_nb": 4.3};
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, html = '') => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'style') e.style.cssText = v; else e.setAttribute(k, v);
+  }
+  if (html) e.innerHTML = html;
+  return e;
+};
+const pct = (v, d = 1) => v.toFixed(d) + '%';
+const signed = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(d);
+const chip = (t) => {
+  const c = D.colors[t];
+  const st = c ? `background:${c.chip};color:${c.chiptext}` : 'background:var(--line);color:var(--fg)';
+  return `<span class="chip" style="${st}">${t}</span>`;
+};
+const wk = (t) => `${Math.floor(t / 100)} Week ${t % 100}`;
+
+/* ---------- header bits ---------- */
+const LV = [
+  { k: 'B1', name: 'Blitz-1 · 5 rushers', c: 'var(--b1)' },
+  { k: 'B2', name: 'Blitz-2 · 6 rushers', c: 'var(--b2)' },
+  { k: 'AO', name: 'All-out · 7+ rushers', c: 'var(--ao)' },
+  { k: '4', name: '4 rushers', c: 'var(--r4)' },
+  { k: '3', name: '3 rushers', c: 'var(--r3)' },
+];
+for (const l of LV) $('defs').append(el('span', { class: 'def' }, `<i class="sw" style="background:${l.c}"></i>${l.name}`));
+$('lg1').innerHTML = LV.map(l => `<span><i class="sw" style="background:${l.c}"></i>${l.name}</span>`).join('')
+  + '<span><i style="width:14px;border-top:2px dashed var(--fg)"></i>league blitz rate</span>';
+
+const LR = D.league_rate, QL = D.qb_league, BL = D.blitz_out_league, NL = D.noblitz_out_league;
+const lead = D.team_streaks[0];
+const histTxt = H ? `${pct(H.blitz)} in ${H.span}` : 'first season measured';
+const tiles = [
+  ['League blitz rate', pct(LR.blitz), `of ${D.n_dropbacks.toLocaleString()} dropbacks${H ? `, vs ${pct(H.blitz)} average in ${H.span}` : ''}`],
+  ['QB success vs blitz', pct(QL.sr_b), `vs ${pct(QL.sr_nb)} against 4 or fewer rushers`],
+  ['Sack rate when blitzing', pct(BL.sack), `vs ${pct(NL.sack)} without a blitz`],
+  ['Longest team sack streak', `${lead.active}`, `games for ${lead.team}, back to ${wk(lead.since)}`],
+];
+for (const [k, v, s] of tiles) $('tiles').append(el('div', { class: 'tile' }, `<div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div>`));
+
+/* ---------- tooltip ---------- */
+const tip = $('tip');
+function placeTip(x, y) {
+  const r = tip.getBoundingClientRect();
+  let left = x + 14, topY = y + 14;
+  if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+  if (topY + r.height > innerHeight - 8) topY = y - r.height - 14;
+  tip.style.left = Math.max(8, left) + 'px'; tip.style.top = Math.max(8, topY) + 'px';
+}
+document.addEventListener('pointermove', (e) => {
+  const t = e.target.closest('[data-tip]');
+  if (!t) { tip.hidden = true; return; }
+  tip.innerHTML = t.dataset.tip; tip.hidden = false; placeTip(e.clientX, e.clientY);
+});
+document.addEventListener('pointerleave', () => { tip.hidden = true; });
+
+/* ---------- axis helper ---------- */
+function axisRow(chart, lo, hi, step, fmt = (v) => v + '%') {
+  const r = el('div', { class: 'row axis' });
+  r.append(el('div'));
+  const tr = el('div', { class: 'track' });
+  for (let v = lo; v <= hi + 1e-9; v += step) {
+    tr.append(el('span', { class: 'tick', style: `left:${(v - lo) / (hi - lo) * 100}%` }, fmt(v)));
+  }
+  r.append(tr, el('div'));
+  chart.append(r);
+}
+function gridlines(track, lo, hi, step) {
+  for (let v = lo; v <= hi + 1e-9; v += step) track.append(el('span', { class: 'gridline', style: `left:${(v - lo) / (hi - lo) * 100}%` }));
+}
+
+/* ---------- record board: ranked record rows, then this season's leaders on the same scale ---------- */
+const teamFill = (t) => (D.colors[t] ? D.colors[t].label : 'var(--muted)');
+function board(chart, o) {
+  chart.append(el('h4', {}, o.title));
+  axisRow(chart, 0, o.max, o.step, o.axis || ((v) => String(v)));
+  const add = (r, isActive, sep) => {
+    const row = el('div', { class: 'row rec' + (sep ? ' sep' : '') });
+    row.append(el('div', { class: 'lab' }, `<span class="rank">${isActive ? '' : r.rank}</span>` + o.label(r)));
+    const tr = el('div', { class: 'track' });
+    gridlines(tr, 0, o.max, o.step);
+    tr.append(el('span', {
+      class: 'hbar', style: `width:${Math.min(100, o.value(r) / o.max * 100)}%;background:${teamFill(r.team)}`,
+      'data-tip': o.tip(r, isActive),
+    }));
+    row.append(tr, el('div', { class: 'val' }, isActive ? o.text(r).replace(/ · .*$/, ' · <span class="tag">active</span>') : o.text(r)));
+    chart.append(row);
+  };
+  o.rows.forEach((r) => add(r, false, false));
+  o.active.forEach((r, i) => add(r, true, i === 0));
+}
+const rankLabels = (rows, key) => rows.map((r, i) => ({ ...r, rank: String(rows.findIndex((x) => x[key] === r[key]) + 1) + (rows.filter((x) => x[key] === r[key]).length > 1 ? '=' : '') }));
+
+/* ---------- 1. pressure rates ---------- */
+{
+  const T = D.teams_rate;
+  const most = T[0], none = T.filter(t => t.blitz === 0).map(t => t.team);
+  const three = [...T].sort((a, b) => b['3'] - a['3']).slice(0, 3);
+  const b2 = [...T].sort((a, b) => (b.B2 + b.AO) - (a.B2 + a.AO))[0];
+  $('p1').innerHTML = `
+    <p><b>${most.team}</b> sends five or more rushers on <b>${pct(most.blitz)}</b> of dropbacks, three times the league rate of ${pct(LR.blitz)}. At the other end, <b>${none.join(', ')}</b> have not blitzed once in seven weeks.${H ? ` League-wide, ${pct(LR.blitz)} compares with ${pct(H.blitz)} across ${H.span} (season range ${pct(Math.min(...Object.values(H.by_year)))} to ${pct(Math.max(...Object.values(H.by_year)))}).` : ''}</p>
+    <p>Not blitzing doesn't always mean sending a four-man rush. <b>${three.map(t => `${t.team} (${pct(t['3'], 0)})`).join(', ')}</b> mostly rush only three and drop eight into coverage. <b>${b2.team}</b> brings six or more most often (${pct(b2.B2 + b2.AO)} of dropbacks). All-out pressure is rare: ${pct(LR.AO)} of league dropbacks, nearly all of them from HAR and ORL.</p>${H && H.blitz_rec ? `
+    <p>${most.team}'s ${pct(most.blitz)} is high, but well short of the record. ${H.blitz_rec[0].team} sent five or more on <b>${pct(H.blitz_rec[0].blitz)}</b> of dropbacks in ${H.blitz_rec[0].yr}, out of a 4-3 front on every snap. Orlando own the all-out record, with ${H.ao_rec[0].ao} all-out blitzes in ${H.ao_rec[0].yr} and the four biggest all-out seasons since ${H.span.slice(0, 4)}.</p>` : ''}`;
+  const c = $('c1');
+  axisRow(c, 0, 100, 25);
+  for (const t of T) {
+    const r = el('div', { class: 'row' });
+    r.append(el('div', { class: 'lab' }, chip(t.team)));
+    const tr = el('div', { class: 'track' });
+    const st = el('div', { class: 'stack' });
+    for (const l of LV) {
+      if (t[l.k] > 0) st.append(el('div', {
+        class: 'seg', style: `width:${t[l.k]}%;background:${l.c}`,
+        'data-tip': `<b>${t.team}</b> · ${l.name}<br>${pct(t[l.k])} of ${t.n} dropbacks`,
+      }));
+    }
+    tr.append(st, el('span', { class: 'refline', style: `left:${LR.blitz}%` }));
+    r.append(tr, el('div', { class: 'val' }, `<b>${pct(t.blitz)}</b>`));
+    c.append(r);
+  }
+}
+
+/* ---------- 1b. blitz records ---------- */
+if (H && H.blitz_rec) {
+  $('f1rec').hidden = false;
+  $('h1rec').textContent = `Blitz records since ${H.span.slice(0, 4)}: single seasons`;
+  const T = D.teams_rate.map((t) => ({ ...t, ao_n: Math.round(t.AO * t.n / 100) }));
+  const bLead = T[0];
+  const aoLead = [...T].sort((a, b) => b.ao_n - a.ao_n)[0];
+  board($('c1a'), {
+    title: 'Highest blitz rate', rows: rankLabels(H.blitz_rec, 'blitz'), max: 100, step: 25, axis: (v) => v + '%',
+    value: (r) => r.blitz, label: (r) => `${chip(r.team)}<span class="muted">${r.yr}</span>`,
+    text: (r) => `<b>${pct(r.blitz)}</b> · ${r.yr}`,
+    tip: (r, a) => `<b>${r.team}</b> · ${r.yr}${a ? ' so far' : ''}<br>Blitzed on ${pct(r.blitz)} of ${r.n} dropbacks`,
+    active: [{ team: bLead.team, yr: '2078', blitz: bLead.blitz, n: bLead.n }],
+  });
+  board($('c1b'), {
+    title: 'Most all-out blitzes (7+)', rows: rankLabels(H.ao_rec, 'ao'), max: 70, step: 10,
+    value: (r) => r.ao, label: (r) => `${chip(r.team)}<span class="muted">${r.yr}</span>`,
+    text: (r) => `<b>${r.ao}</b> · ${r.yr}`,
+    tip: (r, a) => `<b>${r.team}</b> · ${r.yr}${a ? ' so far' : ''}<br>${r.ao} all-out blitzes on ${r.n} dropbacks`,
+    active: [{ team: aoLead.team, yr: '2078', ao: aoLead.ao_n, n: aoLead.n }],
+  });
+}
+
+/* ---------- dumbbell helper (2 and 4) ---------- */
+function dumbbell(chart, rows, lo, hi, step, key, ref, tipFn) {
+  axisRow(chart, lo, hi, step);
+  const sc = (v) => (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * 100;
+  for (const q of rows) {
+    const r = el('div', { class: 'row qbrow' });
+    r.append(el('div', { class: 'lab' }, `${chip(q.team)}<span class="qb">${q.qb}</span>`));
+    const tr = el('div', { class: 'track' });
+    gridlines(tr, lo, hi, step);
+    const a = sc(q[key + '_nb']), b = sc(q[key + '_b']);
+    tr.append(el('span', { class: 'bar-line', style: `left:${Math.min(a, b)}%;width:${Math.abs(a - b)}%` }));
+    tr.append(el('span', { class: 'refline', style: `left:${sc(ref)}%` }));
+    tr.append(el('span', { class: 'pt base', style: `left:${a}%`, 'data-tip': tipFn(q) }));
+    tr.append(el('span', { class: 'pt blitz', style: `left:${b}%`, 'data-tip': tipFn(q) }));
+    const d = q[key + '_b'] - q[key + '_nb'];
+    r.append(tr, el('div', { class: 'val ' + (d >= 0 ? 'up' : 'down') }, signed(d)));
+    chart.append(r);
+  }
+}
+
+/* ---------- 2. QB success vs blitz ---------- */
+{
+  const Q = D.qb.map(q => ({ ...q, d: q.sr_b - q.sr_nb }));
+  const byD = [...Q].sort((a, b) => b.d - a.d);
+  const most = [...Q].sort((a, b) => b.n_b - a.n_b)[0];
+  const up = byD.slice(0, 2), dn = byD.slice(-2).reverse();
+  $('p2').innerHTML = `
+    <p>So far this season blitzing has not really paid off in the aggregate. Quarterbacks succeed on <b>${pct(QL.sr_b)}</b> of blitzed dropbacks and <b>${pct(QL.sr_nb)}</b> otherwise, and EPA per dropback is slightly <i>higher</i> against the blitz (${signed(QL.epa_b, 3)} vs ${signed(QL.epa_nb, 3)}).${H ? ` That pretty much holds over time: from ${H.span}, QBs succeeded on ${pct(H.sr_b)} of blitzed dropbacks and ${pct(H.sr_nb)} of the rest, with sack rates of ${pct(H.sack_b)} and ${pct(H.sack_nb)} – see the following section for some elaboration.` : ''}</p>
+    <p>Individual quarterbacks, however, do differ a lot. <b>${up[0].qb}</b> (${up[0].team}) jumps ${signed(up[0].d)} points when blitzed and <b>${up[1].qb}</b> (${up[1].team}) ${signed(up[1].d)}. <b>${dn[0].qb}</b> (${dn[0].team}) drops ${Math.abs(dn[0].d).toFixed(1)} points and <b>${dn[1].qb}</b> (${dn[1].team}) ${Math.abs(dn[1].d).toFixed(1)}${dn[1].qb === most.qb ? `, on a league-high ${most.n_b} blitzed dropbacks` : `. <b>${most.qb}</b> has faced the most blitzes (${most.n_b}) and has been ${most.d < 0 ? 'worse' : 'better'} against them (${pct(most.sr_b)} vs ${pct(most.sr_nb)})`}.</p>`;
+  dumbbell($('c2'), Q, 20, 65, 5, 'sr', QL.sr_b, (q) =>
+    `<b>${q.qb}</b> · ${q.team}<br>vs blitz: ${pct(q.sr_b)} success, EPA ${signed(q.epa_b, 2)} (${q.n_b} dropbacks)<br>vs 4 or fewer: ${pct(q.sr_nb)} success, EPA ${signed(q.epa_nb, 2)} (${q.n_nb})`);
+}
+
+/* ---------- 3. blitz outcomes ---------- */
+{
+  const B = D.blitz_out.filter(t => t.n >= 20);
+  const few = D.blitz_out.filter(t => t.n < 20).map(t => t.team);
+  const best = B[0];
+  const byEpa = [...B].sort((a, b) => a.epa - b.epa);
+  $('p3').innerHTML = `
+    <p>Essentially a blitz trades interceptions for sacks. Blitzed dropbacks end in a sack <b>${pct(BL.sack)}</b> of the time against ${pct(NL.sack)} without one, but interceptions fall from ${pct(NL.int)} to ${pct(BL.int)}, and the total of sacks, incompletions and picks barely changes (${pct(BL.sack + BL.inc + BL.int)} vs ${pct(NL.sack + NL.inc + NL.int)}).</p>
+    <p><b>${best.team}</b> get the most from it this year: ${pct(best.disrupt)} of their ${best.n} blitzes end in a sack, incompletion or pick, ${pct(best.sack)} in a sack. <b>${byEpa[0].team}</b> and <b>${byEpa[1].team}</b> allow the fewest EPA per blitz. ORL are the interesting case. Their blitz looks average on this chart, but their non-blitz defense allows ${signed(D.blitz_out.find(t => t.team === 'ORL').nb_epa, 2)} EPA per dropback against ${signed(D.blitz_out.find(t => t.team === 'ORL').epa, 2)} when they blitz, so blitzing three times in four is doing something for them.</p>`;
+  const c = $('c3');
+  axisRow(c, 0, 60, 10);
+  const row = (t, lab, cls = '') => {
+    const r = el('div', { class: 'row ' + cls });
+    r.append(el('div', { class: 'lab' }, lab));
+    const tr = el('div', { class: 'track' });
+    gridlines(tr, 0, 60, 10);
+    const st = el('div', { class: 'stack' });
+    const name = t.team || 'League';
+    const tipTxt = `<b>${name}</b> · ${t.n} blitzed dropbacks<br>Sack ${pct(t.sack)} · Inc ${pct(t.inc)} · INT ${pct(t.int)}<br>Without a blitz: ${pct(t.nb_sack + t.nb_inc + t.nb_int)} disrupted, EPA ${signed(t.nb_epa, 2)}`;
+    for (const [k, col] of [['sack', 'var(--o-sack)'], ['inc', 'var(--o-inc)'], ['int', 'var(--o-int)']]) {
+      if (t[k] > 0) st.append(el('div', { class: 'seg', style: `width:${t[k] / 60 * 100}%;background:${col}`, 'data-tip': tipTxt }));
+    }
+    tr.append(st, el('span', { class: 'cmp', style: `left:${Math.min(100, (t.nb_sack + t.nb_inc + t.nb_int) / 60 * 100)}%`, 'data-tip': tipTxt }));
+    r.append(tr, el('div', { class: 'val' }, `${pct(t.sack + t.inc + t.int, 0)} · <span class="${t.epa <= 0 ? 'up' : 'down'}">${signed(t.epa, 2)}</span>`));
+    c.append(r);
+  };
+  row({ ...BL, nb_sack: NL.sack, nb_inc: NL.inc, nb_int: NL.int, nb_epa: NL.epa }, 'League', 'league');
+  B.forEach((t, i) => row(t, chip(t.team), i === 0 ? 'sep' : ''));
+  if (few.length) c.after(el('figcaption', {}, `Not shown (fewer than 20 blitzes): ${few.join(', ')}.`));
+}
+
+/* ---------- 4. throws to the sticks ---------- */
+{
+  const S = D.sticks.map(q => ({ ...q, d: q.st_b - q.st_nb }));
+  const SL = D.sticks_league;
+  const byD = [...S].sort((a, b) => a.d - b.d);
+  const low = S[0], high = S[S.length - 1];
+  $('p4').innerHTML = `
+    <p>Across the league the blitz does not shorten throws: <b>${pct(SL.st_b)}</b> of aimed passes target a route that reaches the sticks against the blitz, ${pct(SL.st_nb)} without it. Some quarterbacks change a lot, though.</p>
+    <p><b>${byD[0].qb}</b> (${byD[0].team}) goes from ${pct(byD[0].st_nb)} to ${pct(byD[0].st_b)} when blitzed, the biggest check-down shift in the league, followed by <b>${byD[1].qb}</b> and <b>${byD[2].qb}</b>. <b>${low.qb}</b> rarely throws to the sticks at all (${pct(low.st_b)} vs the blitz). <b>${byD[byD.length - 1].qb}</b> does the opposite, attacking past the sticks ${pct(byD[byD.length - 1].st_b)} of the time when blitzed against ${pct(byD[byD.length - 1].st_nb)} otherwise.</p>`;
+  dumbbell($('c4'), S, 20, 70, 10, 'st', SL.st_b, (q) =>
+    `<b>${q.qb}</b> · ${q.team}<br>vs blitz: ${pct(q.st_b)} to the sticks (${q.n_b} throws)<br>vs 4 or fewer: ${pct(q.st_nb)} (${q.n_nb})`);
+}
+
+/* ---------- 5. sack streaks ---------- */
+{
+  const TS = D.team_streaks;
+  const shown = TS.filter(t => t.active >= 4);
+  const dry = TS.filter(t => t.active === 0).map(t => t.team);
+  const kcy = TS.find(t => t.team === 'KCY');
+  const P = D.player_streaks.filter(p => p.active >= 3 || D.player_streaks.indexOf(p) < 9).slice(0, 9);
+  const p0 = P[0];
+  $('p5').innerHTML = `
+    <p><b>${TS[0].team}</b> have recorded a sack in <b>${TS[0].active} straight games</b>, a run that started in ${wk(TS[0].since)} and includes last season's Wild Card game. <b>${TS[1].team}</b>, <b>${TS[2].team}</b> and <b>${TS[3].team}</b> are next at ${TS[1].active}, all three with a sack in every 2078 game. KCY lead the league with ${kcy.sk78} sacks, including ${kcy.weeks78['3']} in Week 3.</p>
+    <p>${TS[0].team} still have a long way to go for the record. Las Vegas had a sack in <b>47 straight games</b> from 2062 Week 17 to 2065 Week 12 (126 sacks, three of the games in the playoffs). London's 41 from 2071 to 2073 is the only other run past 40.</p>
+    <p>${dry.length} teams were held without a sack in their most recent game: ${dry.join(', ')}. Individual streaks are shorter. <b>${p0.name}</b> (${p0.team}) and <b>${P[1].name}</b> (${P[1].team}) have a sack in four straight games, both since Week 4. The individual record is <b>13</b>, set by Calgary's <b>Johnny Peelle</b> from 2064 Week 17 to 2065 Week 13. Peelle also has the 11-game and 10-game runs that sit second and fourth all-time, each worth 18 sacks.</p>`;
+  const c = $('c5');
+  for (const t of shown) {
+    const r = el('div', { class: 'srow' });
+    r.append(el('div', {}, chip(t.team)));
+    const g = el('div', { class: 'games' });
+    const n78 = Object.keys(t.weeks78).length;
+    const in78 = Math.min(t.active, n78);
+    const po = t.playoff || 0;
+    const n77 = t.active - in78 - po;
+    for (let i = 0; i < n77; i++) g.append(el('span', { class: 'g y77', 'data-tip': `<b>${t.team}</b> · 2077 regular season` }));
+    for (let i = 0; i < po; i++) g.append(el('span', { class: 'g po', 'data-tip': `<b>${t.team}</b> · 2077 Wild Card` }));
+    const weeks = Object.entries(t.weeks78).map(([w, s]) => [+w, s]).sort((a, b) => a[0] - b[0]).slice(-in78);
+    for (const [w, s] of weeks) g.append(el('span', { class: 'g y78', 'data-tip': `<b>${t.team}</b> · 2078 Week ${w}: ${s} sack${s === 1 ? '' : 's'}` }, Number.isInteger(s) ? s : s.toFixed(1)));
+    r.append(g, el('div', { class: 'sval' }, `<b>${t.active}</b>games · ${t.sacks} sk`));
+    c.append(r);
+  }
+  c.append(el('div', { class: 'muted', style: 'font-size:var(--step--1);margin-top:6px' }, `League record since 2060: LVS, 47 games (2062–65). Streaks of 4+ games shown. Others: ${TS.slice(shown.length).filter(t => t.active > 0).map(t => t.team + ' ' + t.active).join(', ')}.`));
+  const pc = $('c6');
+  for (const p of P) {
+    pc.append(el('div', { class: 'pcard' }, `
+      <div class="name">${p.name}</div>
+      <div class="big"><b class="num">${p.active}</b><span>games</span></div>
+      <div class="meta">${chip(p.team)}<span>${p.Position} · ${p.sacks} sk in streak · ${p.sk78} this season</span></div>`));
+  }
+}
+
+/* ---------- record board ---------- */
+{
+  // All-time records since 2060 (hist_streaks.py; LVS/CAL playoff games added from the playoff logs).
+  const TEAM_REC = [
+    { rank: '1', team: 'LVS', games: 47, sacks: 126, span: '2062–65' },
+    { rank: '2', team: 'LON', games: 41, sacks: 106, span: '2071–73' },
+    { rank: '3', team: 'CAL', games: 37, sacks: 90, span: '2060–62' },
+  ];
+  const PLAYER_REC = [
+    { rank: '1', name: 'Johnny Peelle', pos: 'LDE', team: 'CAL', games: 13, sacks: 18, span: '2064–65' },
+    { rank: '2=', name: 'Johnny Peelle', pos: 'LDE', team: 'CAL', games: 11, sacks: 18, span: '2066' },
+    { rank: '2=', name: 'Carl Bobro', pos: 'RDE', team: 'LVS', games: 11, sacks: 16.5, span: '2070–71' },
+    { rank: '4=', name: 'Johnny Peelle', pos: 'LDE', team: 'CAL', games: 10, sacks: 18, span: '2071' },
+    { rank: '4=', name: 'Randall Woodard', pos: 'LDE', team: 'POR', games: 10, sacks: 13, span: '2065–66' },
+  ];
+  const streakTip = (r, a) => `<b>${r.name || r.team}</b> · ${r.team}<br>${r.games} straight games with a sack<br>${r.sacks} sacks · ${r.span}${a ? ' (active)' : ''}`;
+  const tLead = D.team_streaks[0];
+  board($('c7'), {
+    title: 'Teams', rows: TEAM_REC, max: 50, step: 10, value: (r) => r.games, tip: streakTip,
+    active: [{ team: tLead.team, games: tLead.active, sacks: tLead.sacks, span: `since ${wk(tLead.since)}` }],
+    label: (r) => chip(r.team), text: (r) => `<b>${r.games}</b> · ${r.span}`,
+  });
+  const pTop = D.player_streaks.filter((p) => p.active === D.player_streaks[0].active);
+  board($('c8'), {
+    title: 'Players', rows: PLAYER_REC, max: 14, step: 2, value: (r) => r.games, tip: streakTip,
+    active: pTop.map((p) => ({ name: p.name, team: p.team, games: p.active, sacks: p.sacks, span: `since ${wk(p.since)}` })),
+    label: (r) => `${chip(r.team)}<span class="qb">${r.name}</span>`, text: (r) => `<b>${r.games}</b> · ${r.span}`,
+  });
+}
+
+/* ---------- notes + table ---------- */
+{
+  const notes = [
+    `Play-by-play from the 2078 IFL logs, Weeks 1–7. A dropback is a pass, play-action pass or scramble; plays wiped out by penalty are left out.`,
+    H ? `Historical blitz rate: ${H.span} regular seasons, same counting rule (${H.n.toLocaleString()} dropbacks).` : `No historical comparison yet.`,
+    `"Aimed throws" are pass and play-action attempts with an identified target, excluding sacks.`,
+  ];
+  $('notes').innerHTML = notes.map(n => `<li>${n}</li>`).join('');
+  const T = D.teams_rate;
+  $('t1').innerHTML = `<table><thead><tr><th>Team</th><th>Dropbacks</th><th>3 rush</th><th>4 rush</th><th>Blitz-1</th><th>Blitz-2</th><th>All-out</th><th>Blitz %</th></tr></thead><tbody>${
+    T.map(t => `<tr><td>${t.team}</td><td>${t.n}</td><td>${pct(t['3'])}</td><td>${pct(t['4'])}</td><td>${pct(t.B1)}</td><td>${pct(t.B2)}</td><td>${pct(t.AO)}</td><td>${pct(t.blitz)}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+})();
+</script>
+
+</body>
+</html>

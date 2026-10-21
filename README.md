@@ -4,6 +4,8 @@ Image repo for IFL weekly FOF reports — charts embedded in the league's forum 
 
 Images are organised by league, season and week, e.g. `ifl/2078/wk01/`.
 
+Some reports also have an interactive web version (hover any bar or dot for the numbers), served with GitHub Pages from the same folders, e.g. [IFL 2078 Week 7 pressure report](https://fof-reports.github.io/IFL_reports/ifl/2078/wk07/pressure/).
+
 ## Licence
 
 Charts © FOF-Reports, licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) (see `LICENSE`): you may share and adapt them for non-commercial purposes with credit to FOF-Reports.
